@@ -10,7 +10,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .const import DOMAIN
 from .hub import TISHub
 
-PLATFORMS: list[Platform] = [Platform.LIGHT]
+PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.SWITCH]
 
 type TISConfigEntry = ConfigEntry[TISHub]
 

@@ -5,7 +5,7 @@
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "no_devices": "No TIS dimmers answered. Check the gateway address and that Home Assistant is on the same network as the gateway.",
+      "no_devices": "No TIS dimmer or relay modules answered. Check the gateway address and that Home Assistant is on the same network as the gateway.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "step": {
@@ -24,6 +24,11 @@
   },
   "entity": {
     "light": {
+      "channel": {
+        "name": "Channel {channel}"
+      }
+    },
+    "switch": {
       "channel": {
         "name": "Channel {channel}"
       }

@@ -2,6 +2,7 @@
 
 from typing import Any, override
 
+from homeassistant.const import CONF_PLATFORM, Platform
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 
@@ -9,17 +10,27 @@ from .const import DOMAIN
 from .hub import TISHub
 
 
+def specs_for(hub: TISHub, platform: Platform) -> list[dict[str, Any]]:
+    """Return the channels that belong to a platform.
+
+    Entries created before relays were supported store no platform; those are all dimmer channels.
+    """
+    return [s for s in hub.devices if s.get(CONF_PLATFORM, Platform.LIGHT) == platform]
+
+
 class TISEntity(Entity):
     """One output channel on one TIS module."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
+    _attr_translation_key = "channel"
 
     def __init__(self, hub: TISHub, spec: dict[str, Any]) -> None:
         """Initialize the entity."""
         self.hub = hub
         self.address: tuple[int, int] = (spec["subnet"], spec["device"])
         self.channel: int = spec["channel"]
+        self._attr_translation_placeholders = {"channel": str(self.channel)}
         module_id = f"{hub.entry.entry_id}_{self.address[0]}_{self.address[1]}"
         self._attr_unique_id = f"{module_id}_{self.channel}"
         self._attr_device_info = DeviceInfo(

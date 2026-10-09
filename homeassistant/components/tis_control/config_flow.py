@@ -14,7 +14,13 @@ from tis_smartbus import (
 )
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.const import CONF_DEVICES, CONF_HOST, CONF_PORT
+from homeassistant.const import (
+    CONF_DEVICES,
+    CONF_HOST,
+    CONF_PLATFORM,
+    CONF_PORT,
+    Platform,
+)
 
 from .const import DISCOVERY_TIMEOUT, DOMAIN
 
@@ -28,16 +34,23 @@ STEP_USER_DATA_SCHEMA = probatio.Schema(
 )
 
 
+# Dimmer channels become lights; relay channels (which may drive anything) become switches.
+PLATFORM_BY_CATEGORY = {
+    Category.DIMMER: Platform.LIGHT,
+    Category.RELAY: Platform.SWITCH,
+}
+
+
 async def _async_find_channels(gateway: TISGateway) -> list[dict[str, Any]]:
-    """Find the dimmer modules on the bus and list their channels (read-only)."""
+    """Find the dimmer and relay modules on the bus and list their channels (read-only)."""
     found = await gateway.discover(DISCOVERY_TIMEOUT)
-    dimmers = [m for m in found if m.device_type.category is Category.DIMMER]
+    modules = [m for m in found if m.device_type.category in PLATFORM_BY_CATEGORY]
     # The module itself knows how many channels it has; the device table is the fallback.
     replies = await asyncio.gather(
-        *(gateway.read_channels(m.subnet, m.device) for m in dimmers)
+        *(gateway.read_channels(m.subnet, m.device) for m in modules)
     )
     channels: list[dict[str, Any]] = []
-    for module, levels in zip(dimmers, replies, strict=True):
+    for module, levels in zip(modules, replies, strict=True):
         count = len(levels) if levels else module.device_type.channels
         channels.extend(_channel(module, channel) for channel in range(1, count + 1))
     return channels
@@ -51,6 +64,7 @@ def _channel(module: DiscoveredDevice, channel: int) -> dict[str, Any]:
         "channel": channel,
         "module": module.name or f"{model} {module.subnet}.{module.device}",
         "model": model,
+        CONF_PLATFORM: PLATFORM_BY_CATEGORY[module.device_type.category],
     }
 
 

@@ -35,22 +35,27 @@ async def test_user_flow(hass: HomeAssistant, mock_gateway: MagicMock) -> None:
     assert result["title"] == f"TIS gateway {HOST}"
     assert result["result"].unique_id == f"{HOST}:6000"
     devices = result["data"][CONF_DEVICES]
-    # The HVAC module is not a light; the dimmer reports its own six channels.
-    assert [d["channel"] for d in devices] == [1, 2, 3, 4, 5, 6]
+    # The HVAC module is skipped; the dimmer reports 6 channels and the RCU 20.
+    lights = [d for d in devices if d["platform"] == "light"]
+    switches = [d for d in devices if d["platform"] == "switch"]
+    assert [d["channel"] for d in lights] == [1, 2, 3, 4, 5, 6]
+    assert len(switches) == 20
     assert devices[0] == {
         "subnet": 1,
         "device": 5,
         "channel": 1,
         "module": "Living Dimmer",
         "model": "DIM-6CH-2A",
+        "platform": "light",
     }
+    assert switches[0]["module"] == "Plant Room RCU"
     mock_gateway.close.assert_awaited_once()
 
 
 async def test_channel_count_falls_back_to_device_table(
     hass: HomeAssistant, mock_gateway: MagicMock
 ) -> None:
-    """A dimmer that does not answer the status read gets its count from the table."""
+    """Modules that do not answer the status read get their count from the table."""
     mock_gateway.read_channels.side_effect = None
     mock_gateway.read_channels.return_value = None
     mock_gateway.discover.return_value[0].name = ""
@@ -59,7 +64,7 @@ async def test_channel_count_falls_back_to_device_table(
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     devices = result["data"][CONF_DEVICES]
-    assert len(devices) == 6
+    assert len(devices) == 6 + 20
     assert devices[0]["module"] == "DIM-6CH-2A 1.5"
 
 

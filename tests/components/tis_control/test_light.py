@@ -1,7 +1,7 @@
 """Test the TIS Control lights."""
 
 from datetime import timedelta
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
@@ -16,7 +16,13 @@ from homeassistant.components.light import (
     SERVICE_TURN_ON,
 )
 from homeassistant.components.tis_control.const import POLL_INTERVAL
-from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    STATE_OFF,
+    STATE_ON,
+    STATE_UNAVAILABLE,
+    Platform,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
@@ -30,10 +36,11 @@ CHANNEL_2 = "light.living_dimmer_channel_2"
 async def setup_entry(
     hass: HomeAssistant, mock_gateway: MagicMock, mock_config_entry: MockConfigEntry
 ) -> MockConfigEntry:
-    """Set up the integration."""
+    """Set up the integration with only the light platform."""
     mock_config_entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
+    with patch("homeassistant.components.tis_control.PLATFORMS", [Platform.LIGHT]):
+        await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
     return mock_config_entry
 
 

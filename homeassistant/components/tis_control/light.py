@@ -9,13 +9,13 @@ from homeassistant.components.light import (
     LightEntity,
     LightEntityFeature,
 )
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.color import brightness_to_value, value_to_brightness
 
 from . import TISConfigEntry
-from .entity import TISEntity
-from .hub import TISHub
+from .entity import TISEntity, specs_for
 
 # Commands are single UDP datagrams and state is pushed, so nothing needs throttling.
 PARALLEL_UPDATES = 0
@@ -30,7 +30,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up TIS Control lights."""
     hub = entry.runtime_data
-    async_add_entities(TISLight(hub, spec) for spec in hub.devices)
+    async_add_entities(TISLight(hub, spec) for spec in specs_for(hub, Platform.LIGHT))
 
 
 class TISLight(TISEntity, LightEntity):
@@ -39,12 +39,6 @@ class TISLight(TISEntity, LightEntity):
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
     _attr_supported_features = LightEntityFeature.TRANSITION
-    _attr_translation_key = "channel"
-
-    def __init__(self, hub: TISHub, spec: dict[str, Any]) -> None:
-        """Initialize the light."""
-        super().__init__(hub, spec)
-        self._attr_translation_placeholders = {"channel": str(self.channel)}
 
     @property
     @override

@@ -22,6 +22,15 @@ DEVICES = [
         "model": "DIM-6CH-2A",
     }
     for channel in (1, 2)
+] + [
+    {
+        "subnet": 4,
+        "device": 200,
+        "channel": 5,
+        "module": "Plant Room RCU",
+        "model": "RCU-20R20Z-IP",
+        "platform": "switch",
+    }
 ]
 
 
@@ -48,7 +57,7 @@ def mock_config_entry() -> MockConfigEntry:
 
 @pytest.fixture
 def mock_gateway() -> Generator[MagicMock]:
-    """Mock the TIS gateway: a 6-channel dimmer at 1.5 and an HVAC module at 1.10."""
+    """Mock the TIS gateway: a 6-channel dimmer at 1.5, an HVAC module at 1.10, a 20-relay RCU at 4.200."""
     with (
         patch(
             "homeassistant.components.tis_control.TISGateway", autospec=True
@@ -62,8 +71,14 @@ def mock_gateway() -> Generator[MagicMock]:
         gateway.discover.return_value = [
             DiscoveredDevice(1, 5, lookup(0x0258), "Living Dimmer"),
             DiscoveredDevice(1, 10, lookup(0x0077), ""),
+            DiscoveredDevice(4, 200, lookup(0x802D), "Plant Room RCU"),
         ]
-        levels: dict[tuple[int, int], list[int]] = {(1, 5): [100, 0, 40, 0, 0, 0]}
+        relays = [0] * 20
+        relays[4] = 100
+        levels: dict[tuple[int, int], list[int]] = {
+            (1, 5): [100, 0, 40, 0, 0, 0],
+            (4, 200): relays,
+        }
         gateway.levels = levels
 
         async def read_channels(
